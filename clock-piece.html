@@ -1,0 +1,469 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>とけいピース</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+/* 配置: 1カラム。時計(円グラフ状のピース)を中心に、下に数のしきい(5分×こ=分、12こ=1時間)を並べる */
+:root{
+  --font:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI",sans-serif;
+  --bg:#eef4fa; --card:#ffffff; --ink:#1b2a3a; --muted:#566779; --line:#d2dce7; --face:#ffffff;
+  --accent:#2c64e3; --accent-ink:#ffffff; --a:#2c64e3; --b:#12805a; --mk-ink:#ffffff;
+  --tick:#8696a8; --mlabel:#d8452f; --ok:#12805a; --warn:#b4531a;
+  --lap0:#ffc83d; --lap1:#37c3a3; --lap2:#ff7d6e; --lap3:#9585f2; --lap4:#4eaeff;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101923; --card:#192634; --ink:#eaf1f8; --muted:#9fb1c3; --line:#2b3a4b; --face:#202f40;
+    --accent:#6f9bff; --accent-ink:#0b1220; --a:#7ea6ff; --b:#4fd1a1; --mk-ink:#0b1220;
+    --tick:#6f8196; --mlabel:#ff9a85; --ok:#4fd1a1; --warn:#ffb27a; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101923; --card:#192634; --ink:#eaf1f8; --muted:#9fb1c3; --line:#2b3a4b; --face:#202f40;
+  --accent:#6f9bff; --accent-ink:#0b1220; --a:#7ea6ff; --b:#4fd1a1; --mk-ink:#0b1220;
+  --tick:#6f8196; --mlabel:#ff9a85; --ok:#4fd1a1; --warn:#ffb27a; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--font); font-size:17px; line-height:1.6;
+  padding-block:16px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.app{max-width:560px;margin:0 auto;display:grid;gap:14px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:26px;font-weight:900;margin:0;letter-spacing:.02em;text-wrap:balance}
+.stars{font-weight:900;font-size:20px;background:var(--card);border:2px solid var(--line);border-radius:999px;padding:2px 14px;font-variant-numeric:tabular-nums}
+.stars i{font-style:normal;color:var(--lap0)}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tab{font:700 15px/1.3 var(--font);min-height:56px;padding:6px 8px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tab small{display:block;font-weight:500;font-size:12px;opacity:.85}
+.panel{display:grid;gap:14px;min-width:0}
+.lead{margin:0;color:var(--muted);font-size:16px}
+.card{background:var(--card);border:2px solid var(--line);border-radius:20px;padding:14px;min-width:0}
+.clockbox{display:grid;place-items:center}
+.clockbox svg{width:min(100%,380px);height:auto;display:block}
+.switch{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--muted);cursor:pointer}
+.switch input{width:22px;height:22px;accent-color:var(--accent)}
+.readout{display:grid;gap:2px;text-align:center}
+.readout .eq{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.readout .hm{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums}
+.readout b{font-weight:900}
+.note{min-height:1.6em;margin:0;text-align:center;font-weight:700;color:var(--ok)}
+.shelf{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;min-height:0}
+.shelf:empty{display:none}
+.token{display:grid;justify-items:center;width:78px;font-size:13px;font-weight:700;color:var(--muted)}
+.token svg{width:60px;height:60px}
+.token.new{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(.5);opacity:.2}100%{transform:scale(1);opacity:1}}
+.ctrls{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px}
+.btn{font:700 18px/1.2 var(--font);min-height:54px;padding:0 16px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.quiet{font-size:15px;min-height:44px;color:var(--muted)}
+.btn:focus-visible,.tab:focus-visible,.seg button:focus-visible,.step:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn[aria-disabled="true"]{opacity:.45}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.seg button{font:700 14px/1.3 var(--font);min-height:48px;padding:4px 6px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.seg button[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--card))}
+.problem{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;text-align:center}
+.problem svg{width:100%;max-width:132px;height:auto}
+.problem .who{font-weight:900;font-size:20px;font-variant-numeric:tabular-nums}
+.problem .who span{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;color:var(--mk-ink);font-size:16px;margin-right:6px}
+.who .ia{background:var(--a)} .who .ib{background:var(--b)}
+.arrow{font-size:28px;font-weight:900;color:var(--muted)}
+.question{margin:0;font-size:21px;font-weight:900;text-align:center;text-wrap:balance}
+.status{margin:0;text-align:center;font-weight:700;min-height:1.6em}
+.hint{background:color-mix(in srgb,var(--lap0) 22%,var(--card));border-radius:14px;padding:10px 14px;font-size:16px;font-weight:700}
+.answer{display:grid;gap:12px}
+.steppers{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}
+.stepper{display:flex;align-items:center;gap:8px}
+.step{width:52px;height:52px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);font:900 26px/1 var(--font);cursor:pointer}
+.val{min-width:84px;text-align:center;font-weight:700}
+.val b{font-size:36px;font-weight:900;font-variant-numeric:tabular-nums;margin-right:2px}
+.result{margin:0;text-align:center;font-size:19px;font-weight:900;min-height:1.6em}
+.result.ok{color:var(--ok)} .result.no{color:var(--warn)}
+.tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.tile{display:grid;justify-items:center;font-size:12px;font-weight:700;color:var(--muted)}
+.tile svg{width:100%;max-width:52px;height:auto}
+.tiles-empty{grid-column:1/-1;text-align:center;color:var(--muted);font-weight:700}
+.rule{margin:0;text-align:center;font-weight:900;color:var(--muted);font-size:15px}
+svg .face{fill:var(--face);stroke:var(--line);stroke-width:3}
+svg .piece{stroke:var(--face);stroke-width:2;stroke-linejoin:round}
+svg .lap0{fill:var(--lap0)} svg .lap1{fill:var(--lap1)} svg .lap2{fill:var(--lap2)} svg .lap3{fill:var(--lap3)} svg .lap4{fill:var(--lap4)}
+svg .tick{stroke:var(--tick);stroke-width:1.5}
+svg .tick.big{stroke:var(--ink);stroke-width:3}
+svg .num{font:700 24px var(--font);fill:var(--ink);text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:var(--face);stroke-width:4px;stroke-linejoin:round}
+svg.mini .num{font-size:36px}
+svg .mlabel{font:900 14px var(--font);fill:var(--mlabel);text-anchor:middle;dominant-baseline:central}
+svg .hand-under{stroke:var(--face);stroke-linecap:round}
+svg .hand{stroke:var(--ink);stroke-linecap:round}
+svg .dot-under{fill:var(--face)} svg .dot{fill:var(--ink)}
+svg .mk.a{fill:var(--a)} svg .mk.b{fill:var(--b)}
+svg .mk{stroke:var(--face);stroke-width:2}
+svg .mkt{font:900 17px var(--font);fill:var(--mk-ink);text-anchor:middle;dominant-baseline:central}
+svg .tface{fill:var(--face);stroke:var(--line);stroke-width:2}
+svg .tpiece{fill:var(--lap0)}
+@media (prefers-reduced-motion: reduce){.token.new{animation:none}}
+@media (max-width:420px){h1{font-size:23px}.tab{font-size:14px}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <h1>とけいピース</h1>
+    <div class="stars" aria-label="あつめた ほし"><i>★</i> <span id="starCount">0</span></div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="あそびかた">
+    <button class="tab" role="tab" id="tab1" aria-selected="true" aria-controls="m1">ピースで あそぶ<small>5分ずつ ふやす</small></button>
+    <button class="tab" role="tab" id="tab2" aria-selected="false" aria-controls="m2">A から B<small>なん時間 なん分</small></button>
+    <button class="tab" role="tab" id="tab3" aria-selected="false" aria-controls="m3">分を 時間に<small>まとめよう</small></button>
+  </nav>
+
+  <label class="switch"><input type="checkbox" id="optLabels" checked> ながい はりの 「ぶんの かず」を みせる</label>
+
+  <!-- あそぶ -->
+  <section class="panel" id="m1" role="tabpanel" aria-labelledby="tab1">
+    <p class="lead">ながい はりが 1つ すすむと 5分。5分の ピースを 12こ あつめると、ちょうど 1しゅう。それが 1時間（60分）だよ。</p>
+    <div class="card clockbox" id="clock1"></div>
+    <div class="card readout" aria-live="polite">
+      <div class="eq" id="r1Eq"></div>
+      <div class="hm" id="r1Hm"></div>
+    </div>
+    <p class="note" id="note1" aria-live="polite"></p>
+    <div class="shelf" id="shelf1" aria-label="できた 1時間"></div>
+    <div class="ctrls">
+      <button class="btn primary" data-add="1">＋5分</button>
+      <button class="btn primary" data-add="3">＋15分</button>
+      <button class="btn primary" data-add="6">＋30分</button>
+      <button class="btn" data-add="-1">もどす</button>
+      <button class="btn quiet" id="reset1">はじめから</button>
+    </div>
+  </section>
+
+  <!-- A から B -->
+  <section class="panel" id="m2" role="tabpanel" aria-labelledby="tab2" hidden>
+    <div class="seg" id="lv2" role="group" aria-label="むずかしさ">
+      <button data-lv="1" aria-pressed="true">Lv1<br>じを またがない</button>
+      <button data-lv="2" aria-pressed="false">Lv2<br>じを またぐ</button>
+      <button data-lv="3" aria-pressed="false">Lv3<br>1時間より ながい</button>
+    </div>
+    <div class="card problem">
+      <div><div id="miniA"></div><div class="who"><span class="ia">A</span><span id="txtA" style="all:unset"></span></div></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div><div id="miniB"></div><div class="who"><span class="ib">B</span><span id="txtB" style="all:unset"></span></div></div>
+    </div>
+    <p class="question">A から B までは、なん時間 なん分？</p>
+    <div class="card clockbox" id="clock2"></div>
+    <p class="status" id="status2" aria-live="polite"></p>
+    <div class="ctrls">
+      <button class="btn primary" data-add2="1">＋5分</button>
+      <button class="btn primary" data-add2="3">＋15分</button>
+      <button class="btn primary" data-add2="6">＋30分</button>
+      <button class="btn primary" data-add2="12">＋1時間</button>
+      <button class="btn" data-add2="-1">もどす</button>
+    </div>
+    <div class="card" id="answerWrap2" hidden>
+      <div class="answer">
+        <div id="ans2"></div>
+        <div class="hint" id="hint2" hidden></div>
+        <p class="result" id="res2" aria-live="polite"></p>
+        <div class="ctrls">
+          <button class="btn quiet" id="hintBtn2">ヒントを みる</button>
+          <button class="btn primary" id="next2" hidden>つぎの もんだい</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn quiet" id="new2">べつの もんだいに かえる</button>
+  </section>
+
+  <!-- 分を時間に -->
+  <section class="panel" id="m3" role="tabpanel" aria-labelledby="tab3" hidden>
+    <p class="question" id="q3"></p>
+    <p class="rule">ピース 12こ ＝ 60分 ＝ 1時間</p>
+    <div class="card">
+      <div class="tiles" id="tiles3" aria-label="のこりの ピース"></div>
+    </div>
+    <div class="ctrls">
+      <button class="btn primary" id="merge3" style="grid-column:1/-1">12こを 1時間に まとめる</button>
+    </div>
+    <p class="note" id="note3" aria-live="polite"></p>
+    <div class="shelf" id="shelf3" aria-label="まとめた 1時間"></div>
+    <div class="card">
+      <div class="answer">
+        <div id="ans3"></div>
+        <div class="hint" id="hint3" hidden></div>
+        <p class="result" id="res3" aria-live="polite"></p>
+        <button class="btn primary" id="next3" hidden>つぎの もんだい</button>
+      </div>
+    </div>
+    <button class="btn quiet" id="new3">べつの もんだいに かえる</button>
+  </section>
+</div>
+
+<script>
+(function(){
+  var $=function(s,r){return (r||document).querySelector(s)};
+  var pad=function(n){return String(n).padStart(2,'0')};
+  var rnd=function(a,b){return a+Math.floor(Math.random()*(b-a+1))};
+  var clockText=function(t){return (((Math.floor(t/60))%12)||12)+':'+pad(t%60)};
+
+  /* ---- ほし ---- */
+  var stars=0;
+  try{stars=parseInt(localStorage.getItem('tokei-piece-stars'),10)||0}catch(e){}
+  function showStars(){$('#starCount').textContent=stars}
+  function addStar(){stars++;showStars();try{localStorage.setItem('tokei-piece-stars',String(stars))}catch(e){}}
+  showStars();
+
+  /* ---- 時計の えがき ---- */
+  function pol(cx,cy,r,min){var a=min/60*2*Math.PI;return [cx+r*Math.sin(a),cy-r*Math.cos(a)]}
+  function wedge(cx,cy,r,m0,m1){
+    var p0=pol(cx,cy,r,m0),p1=pol(cx,cy,r,m1);
+    return 'M'+cx+','+cy+' L'+p0[0].toFixed(2)+','+p0[1].toFixed(2)+' A'+r+','+r+' 0 0 1 '+p1[0].toFixed(2)+','+p1[1].toFixed(2)+' Z';
+  }
+  function clockSVG(o){
+    var cx=160,cy=160,R=118,mini=!!o.mini,s='',i,n,p,q;
+    s+='<svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+(o.aria||'とけい')+'"'+(mini?' class="mini"':'')+'>';
+    s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+(R+4)+'" class="face"/>';
+    for(i=0;i<(o.pieces||0);i++){
+      var lap=Math.floor(i/12),r=R*(1-0.16*lap),m0=o.start+(i%12)*5;
+      s+='<path d="'+wedge(cx,cy,r,m0,m0+5)+'" class="piece lap'+(lap%5)+'"/>';
+    }
+    for(i=0;i<60;i++){
+      var big=i%5===0; if(mini&&!big) continue;
+      p=pol(cx,cy,R,i);q=pol(cx,cy,R-(big?12:6),i);
+      s+='<line x1="'+p[0].toFixed(1)+'" y1="'+p[1].toFixed(1)+'" x2="'+q[0].toFixed(1)+'" y2="'+q[1].toFixed(1)+'" class="tick'+(big?' big':'')+'"/>';
+    }
+    for(n=1;n<=12;n++){
+      p=pol(cx,cy,mini?82:92,n*5);
+      s+='<text x="'+p[0].toFixed(1)+'" y="'+p[1].toFixed(1)+'" class="num">'+n+'</text>';
+    }
+    if(o.labels&&!mini){
+      for(n=1;n<=12;n++){
+        p=pol(cx,cy,142,n*5);
+        s+='<text x="'+p[0].toFixed(1)+'" y="'+p[1].toFixed(1)+'" class="mlabel">'+((n*5)%60)+'</text>';
+      }
+    }
+    (o.markers||[]).forEach(function(mk){
+      var pt=pol(cx,cy,R,mk.pos);
+      s+='<circle cx="'+pt[0].toFixed(1)+'" cy="'+pt[1].toFixed(1)+'" r="14" class="mk '+mk.cls+'"/>';
+      s+='<text x="'+pt[0].toFixed(1)+'" y="'+pt[1].toFixed(1)+'" class="mkt">'+mk.text+'</text>';
+    });
+    if(o.time!=null){
+      var hh=Math.floor(o.time/60)%12,mm=o.time%60;
+      var hp=pol(cx,cy,62,(hh+mm/60)*5),mp=pol(cx,cy,104,mm);
+      s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+hp[0].toFixed(1)+'" y2="'+hp[1].toFixed(1)+'" class="hand-under" stroke-width="15"/>';
+      s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+mp[0].toFixed(1)+'" y2="'+mp[1].toFixed(1)+'" class="hand-under" stroke-width="11"/>';
+      s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+hp[0].toFixed(1)+'" y2="'+hp[1].toFixed(1)+'" class="hand" stroke-width="9"/>';
+      s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+mp[0].toFixed(1)+'" y2="'+mp[1].toFixed(1)+'" class="hand" stroke-width="5"/>';
+      s+='<circle cx="'+cx+'" cy="'+cy+'" r="11" class="dot-under"/><circle cx="'+cx+'" cy="'+cy+'" r="7" class="dot"/>';
+    }
+    return s+'</svg>';
+  }
+  function fullSVG(lap){
+    var s='<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="20" cy="20" r="19" class="tface"/>',i;
+    for(i=0;i<12;i++) s+='<path d="'+wedge(20,20,18,i*5,i*5+5)+'" class="piece lap'+(lap%5)+'" style="stroke-width:1"/>';
+    return s+'</svg>';
+  }
+  function tileSVG(){
+    return '<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="20" cy="20" r="19" class="tface"/><path d="'+wedge(20,20,18,0,5)+'" class="tpiece"/></svg>';
+  }
+
+  /* ---- こたえ いれる ぶひん ---- */
+  function mkAnswer(root,maxH,onCheck){
+    var st={h:0,m:0};
+    root.innerHTML=
+      '<div class="steppers">'+
+        '<div class="stepper"><button class="step" data-k="h" data-d="-1" aria-label="時間を へらす">−</button><div class="val"><b data-v="h">0</b>時間</div><button class="step" data-k="h" data-d="1" aria-label="時間を ふやす">＋</button></div>'+
+        '<div class="stepper"><button class="step" data-k="m" data-d="-5" aria-label="分を へらす">−</button><div class="val"><b data-v="m">0</b>分</div><button class="step" data-k="m" data-d="5" aria-label="分を ふやす">＋</button></div>'+
+      '</div>'+
+      '<button class="btn primary check" style="width:100%">こたえあわせ</button>';
+    function upd(){root.querySelector('[data-v="h"]').textContent=st.h;root.querySelector('[data-v="m"]').textContent=st.m}
+    root.addEventListener('click',function(e){
+      var b=e.target.closest('button'); if(!b) return;
+      if(b.dataset.k==='h') st.h=Math.max(0,Math.min(maxH,st.h+Number(b.dataset.d)));
+      else if(b.dataset.k==='m') st.m=Math.max(0,Math.min(55,st.m+Number(b.dataset.d)));
+      else if(b.classList.contains('check')) onCheck(st.h*60+st.m);
+      upd();
+    });
+    return {reset:function(){st.h=0;st.m=0;upd()}};
+  }
+  function say(el,text,cls){el.textContent=text;el.className='result'+(cls?' '+cls:'')}
+
+  /* ---- タブ ---- */
+  var tabs=['1','2','3'];
+  tabs.forEach(function(k){
+    $('#tab'+k).addEventListener('click',function(){
+      tabs.forEach(function(j){
+        $('#tab'+j).setAttribute('aria-selected',String(j===k));
+        $('#m'+j).hidden=(j!==k);
+      });
+    });
+  });
+  $('#optLabels').addEventListener('change',function(){render1();render2()});
+
+  /* ================= 1. ピースで あそぶ ================= */
+  var s1={pieces:0,lastLaps:0};
+  function render1(){
+    var p=s1.pieces,total=p*5,h=Math.floor(total/60),m=total%60,laps=Math.floor(p/12);
+    $('#clock1').innerHTML=clockSVG({start:0,pieces:p,labels:$('#optLabels').checked,time:total,aria:total+'分 たった とけい'});
+    $('#r1Eq').innerHTML='5分 × <b>'+p+'</b>こ ＝ <b>'+total+'</b>分';
+    $('#r1Hm').innerHTML='＝ <b>'+h+'</b>時間 <b>'+m+'</b>分';
+    var note='';
+    if(p===0) note='ボタンを おして ピースを ふやそう';
+    else if(p%12===0) note='12こで 60分 ＝ 1時間！ いま '+(p/12)+'時間 だよ';
+    else if(p%12===6) note='6こで 30分。1時間の はんぶんだね';
+    $('#note1').textContent=note;
+    var sh='';
+    for(var i=0;i<laps;i++) sh+='<div class="token'+((laps>s1.lastLaps&&i===laps-1)?' new':'')+'">'+fullSVG(i)+'<span>1時間 (60分)</span></div>';
+    $('#shelf1').innerHTML=sh;
+    s1.lastLaps=laps;
+  }
+  document.querySelectorAll('[data-add]').forEach(function(b){
+    b.addEventListener('click',function(){
+      s1.pieces=Math.max(0,Math.min(60,s1.pieces+Number(b.dataset.add)));
+      render1();
+    });
+  });
+  $('#reset1').addEventListener('click',function(){s1.pieces=0;s1.lastLaps=0;render1()});
+
+  /* ================= 2. A から B ================= */
+  //GEN-START
+  function genQ2(level){
+    var Am,d;
+    if(level===1){Am=5*rnd(0,9);d=5*rnd(2,(60-Am)/5)}
+    else if(level===2){Am=5*rnd(3,11);d=5*rnd((60-Am)/5+1,11)}
+    else{Am=5*rnd(0,11);d=60*rnd(1,3)+5*rnd(1,11)}
+    var k=Math.floor((Am+d)/60);
+    var Ah=rnd(1,Math.max(1,11-k));
+    return {Ah:Ah,Am:Am,d:d};
+  }
+  //GEN-END
+  var s2={level:1,Ah:3,Am:0,d:30,pieces:0,tries:0,solved:false};
+  var ans2=mkAnswer($('#ans2'),5,check2);
+  function newQ2(){
+    var g=genQ2(s2.level);
+    s2.Ah=g.Ah;s2.Am=g.Am;s2.d=g.d;s2.pieces=0;s2.tries=0;s2.solved=false;
+    ans2.reset();
+    $('#hint2').hidden=true;$('#hintBtn2').hidden=false;$('#next2').hidden=true;
+    say($('#res2'),'');
+    render2();
+  }
+  function render2(){
+    var q=s2,target=q.d/5,A=q.Ah*60+q.Am,B=A+q.d,now=A+q.pieces*5;
+    $('#miniA').innerHTML=clockSVG({mini:true,time:A,aria:'A '+clockText(A)});
+    $('#miniB').innerHTML=clockSVG({mini:true,time:B,aria:'B '+clockText(B)});
+    $('#txtA').textContent=clockText(A);
+    $('#txtB').textContent=clockText(B);
+    var pa=q.Am,pb=B%60;
+    if(pa===pb){pa=q.Am-2.5;pb=pb+2.5}
+    $('#clock2').innerHTML=clockSVG({start:q.Am,pieces:q.pieces,labels:$('#optLabels').checked,time:now,
+      markers:[{pos:pa,text:'A',cls:'a'},{pos:pb,text:'B',cls:'b'}],aria:'A から B までの とけい'});
+    var st,cls='';
+    if(q.pieces===0) st='ピースを ふやして、A から B まで すすもう';
+    else if(q.pieces<target) st='いま '+clockText(now)+'  （B は '+clockText(B)+'）';
+    else if(q.pieces===target) st='B に ついた！ なん時間 なん分 かな？';
+    else st='B を すぎちゃった。「もどす」で ひとつ もどそう';
+    var el=$('#status2');el.textContent=st;el.style.color=q.pieces===target?'var(--ok)':(q.pieces>target?'var(--warn)':'');
+    $('#answerWrap2').hidden=!(q.pieces===target);
+  }
+  document.querySelectorAll('[data-add2]').forEach(function(b){
+    b.addEventListener('click',function(){
+      if(s2.solved) return;
+      s2.pieces=Math.max(0,Math.min(60,s2.pieces+Number(b.dataset.add2)));
+      render2();
+    });
+  });
+  function hint2(){
+    var p=s2.pieces,h=Math.floor(p/12),r=p%12;
+    var t='ピースは ぜんぶで '+p+'こ。12こで 1時間 だから、'+h+'時間 と ピース '+r+'こ。'+r+'こ × 5分 ＝ '+(r*5)+'分。';
+    var el=$('#hint2');el.textContent=t;el.hidden=false;
+  }
+  $('#hintBtn2').addEventListener('click',hint2);
+  function check2(v){
+    if(s2.solved||s2.pieces!==s2.d/5) return;
+    s2.tries++;
+    if(v===s2.d){
+      s2.solved=true;
+      addStar();
+      var h=Math.floor(s2.d/60),m=s2.d%60;
+      say($('#res2'),'せいかい！ '+h+'時間 '+m+'分 ★',' ok'.trim());
+      $('#res2').className='result ok';
+      $('#next2').hidden=false;$('#hintBtn2').hidden=true;hint2();
+    }else{
+      say($('#res2'),s2.tries>=2?'おしい！ ヒントを よんで もういちど':'もういちど。ピースを かぞえてみよう','no');
+      if(s2.tries>=2) hint2();
+    }
+  }
+  $('#next2').addEventListener('click',newQ2);
+  $('#new2').addEventListener('click',newQ2);
+  document.querySelectorAll('#lv2 button').forEach(function(b){
+    b.addEventListener('click',function(){
+      s2.level=Number(b.dataset.lv);
+      document.querySelectorAll('#lv2 button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});
+      newQ2();
+    });
+  });
+
+  /* ================= 3. 分を 時間に ================= */
+  var s3={n:90,tiles:18,clocks:0,tries:0,solved:false};
+  var ans3=mkAnswer($('#ans3'),5,check3);
+  function newQ3(){
+    s3.n=5*rnd(14,36);s3.tiles=s3.n/5;s3.clocks=0;s3.tries=0;s3.solved=false;
+    ans3.reset();
+    $('#hint3').hidden=true;$('#next3').hidden=true;
+    say($('#res3'),'');$('#note3').textContent='';
+    render3(false);
+  }
+  function render3(pop){
+    $('#q3').innerHTML='<b>'+s3.n+'分</b> は、なん時間 なん分？';
+    var t='',i;
+    for(i=0;i<s3.tiles;i++) t+='<div class="tile">'+tileSVG()+'<span>5分</span></div>';
+    $('#tiles3').innerHTML=t||'<div class="tiles-empty">ピースは ぜんぶ まとめたよ</div>';
+    var sh='';
+    for(i=0;i<s3.clocks;i++) sh+='<div class="token'+((pop&&i===s3.clocks-1)?' new':'')+'">'+fullSVG(i)+'<span>1時間 (60分)</span></div>';
+    $('#shelf3').innerHTML=sh;
+    $('#merge3').setAttribute('aria-disabled',String(s3.tiles<12||s3.solved));
+  }
+  $('#merge3').addEventListener('click',function(){
+    if(s3.solved) return;
+    if(s3.tiles<12){
+      $('#note3').textContent='ピースが 12こ ないと、1時間に ならないよ';
+      $('#note3').style.color='var(--warn)';
+      return;
+    }
+    s3.tiles-=12;s3.clocks++;
+    $('#note3').style.color='';
+    $('#note3').textContent='12こ ＝ 60分 ＝ 1時間！ いま '+s3.clocks+'時間';
+    render3(true);
+  });
+  function hint3(){
+    var el=$('#hint3'),t;
+    if(s3.tiles>=12) t='まだ ピースが '+s3.tiles+'こ。12こ そろったら 1時間に まとめられるよ。';
+    else t='1時間は '+s3.clocks+'こ。のこりの ピースは '+s3.tiles+'こ だから '+s3.tiles+' × 5 ＝ '+(s3.tiles*5)+'分。';
+    el.textContent=t;el.hidden=false;
+  }
+  function check3(v){
+    if(s3.solved) return;
+    s3.tries++;
+    if(v===s3.n){
+      s3.solved=true;addStar();
+      say($('#res3'),'せいかい！ '+s3.n+'分 ＝ '+Math.floor(s3.n/60)+'時間 '+(s3.n%60)+'分 ★');
+      $('#res3').className='result ok';
+      $('#next3').hidden=false;hint3();render3(false);
+    }else{
+      say($('#res3'),s3.tries>=2?'おしい！ ヒントを よんで もういちど':'もういちど。まとめた 1時間を かぞえてみよう','no');
+      if(s3.tries>=2) hint3();
+    }
+  }
+  $('#next3').addEventListener('click',newQ3);
+  $('#new3').addEventListener('click',newQ3);
+
+  /* ---- はじめの がめん ---- */
+  render1();newQ2();newQ3();
+})();
+</script>
+
+</body></html>
