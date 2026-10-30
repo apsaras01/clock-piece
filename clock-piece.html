@@ -5,25 +5,25 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <style>
-/* 配置: 1カラム。時計(円グラフ状のピース)を中心に、下に数のしきい(5分×こ=分、12こ=1時間)を並べる */
+/* 配置: 1カラム。時計にピースを足し、12こで「ぷよっ」と1時間にまとまる。短針=青(時)・長針=赤(分)で色分け */
 :root{
   --font:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI",sans-serif;
   --bg:#eef4fa; --card:#ffffff; --ink:#1b2a3a; --muted:#566779; --line:#d2dce7; --face:#ffffff;
   --accent:#2c64e3; --accent-ink:#ffffff; --a:#2c64e3; --b:#12805a; --mk-ink:#ffffff;
-  --tick:#8696a8; --mlabel:#d8452f; --ok:#12805a; --warn:#b4531a;
+  --tick:#8696a8; --hour:#1f56d6; --minute:#d0392a; --ok:#12805a; --warn:#b4531a;
   --lap0:#ffc83d; --lap1:#37c3a3; --lap2:#ff7d6e; --lap3:#9585f2; --lap4:#4eaeff;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#101923; --card:#192634; --ink:#eaf1f8; --muted:#9fb1c3; --line:#2b3a4b; --face:#202f40;
     --accent:#6f9bff; --accent-ink:#0b1220; --a:#7ea6ff; --b:#4fd1a1; --mk-ink:#0b1220;
-    --tick:#6f8196; --mlabel:#ff9a85; --ok:#4fd1a1; --warn:#ffb27a; color-scheme:dark;
+    --tick:#6f8196; --hour:#8fb0ff; --minute:#ff9a85; --ok:#4fd1a1; --warn:#ffb27a; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#101923; --card:#192634; --ink:#eaf1f8; --muted:#9fb1c3; --line:#2b3a4b; --face:#202f40;
   --accent:#6f9bff; --accent-ink:#0b1220; --a:#7ea6ff; --b:#4fd1a1; --mk-ink:#0b1220;
-  --tick:#6f8196; --mlabel:#ff9a85; --ok:#4fd1a1; --warn:#ffb27a; color-scheme:dark;
+  --tick:#6f8196; --hour:#8fb0ff; --minute:#ff9a85; --ok:#4fd1a1; --warn:#ffb27a; color-scheme:dark;
 }
 *{box-sizing:border-box}
 body{
@@ -37,77 +37,134 @@ body{
 h1{font-size:26px;font-weight:900;margin:0;letter-spacing:.02em;text-wrap:balance}
 .stars{font-weight:900;font-size:20px;background:var(--card);border:2px solid var(--line);border-radius:999px;padding:2px 14px;font-variant-numeric:tabular-nums}
 .stars i{font-style:normal;color:var(--lap0)}
-.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px}
 .tab{font:700 15px/1.3 var(--font);min-height:56px;padding:6px 8px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
 .tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .tab small{display:block;font-weight:500;font-size:12px;opacity:.85}
 .panel{display:grid;gap:14px;min-width:0}
 .lead{margin:0;color:var(--muted);font-size:16px}
+.lbl{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--muted)}
 .card{background:var(--card);border:2px solid var(--line);border-radius:20px;padding:14px;min-width:0}
-.clockbox{display:grid;place-items:center}
-.clockbox svg{width:min(100%,380px);height:auto;display:block}
+.clockbox{position:relative}
+.cwrap{display:grid;place-items:center;padding-right:54px}
+.hslot{width:40px;height:40px;border-radius:50%;border:2px dashed var(--line);margin-top:16px}
+.hplus.off{opacity:.4}
+.cwrap svg{width:min(100%,380px);height:auto;display:block}
+.hstack{position:absolute;right:6px;bottom:8px;display:grid;justify-items:center;gap:2px;pointer-events:none}
+.hstack:empty{display:none}
+.hplus{font-weight:900;font-size:22px;line-height:1;color:var(--hour)}
+.hpile{display:flex;flex-direction:column-reverse;align-items:center;padding-top:16px}
+.htok{width:40px;height:40px;margin-top:-16px}
+.htok svg{width:40px;height:40px;display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+.htok.new{animation:tokenPop .6s ease-out}
+.hcap{font-size:12px;font-weight:900;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:999px;padding:0 8px;white-space:nowrap}
 .switch{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--muted);cursor:pointer}
 .switch input{width:22px;height:22px;accent-color:var(--accent)}
-.readout{display:grid;gap:2px;text-align:center}
-.readout .eq{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
-.readout .hm{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums}
-.readout b{font-weight:900}
+.legend{display:flex;flex-wrap:wrap;gap:4px 18px;justify-content:center;font-size:14px;font-weight:700;color:var(--muted)}
+.legend i{display:inline-block;width:24px;height:8px;border-radius:4px;margin-right:6px;vertical-align:middle}
+.legend .h i{background:var(--hour);height:11px}
+.legend .m i{background:var(--minute)}
+.readout{display:grid;gap:10px}
+.rrow{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;align-items:center}
+.tag{display:grid;justify-items:center;text-align:center;border-radius:12px;padding:4px 6px;font-weight:900;font-size:16px;line-height:1.25}
+.tag small{font-size:11px;font-weight:700;color:var(--muted)}
+.tag.dur{background:color-mix(in srgb,var(--lap0) 38%,var(--card))}
+.tag.tm{background:color-mix(in srgb,var(--hour) 16%,var(--card))}
+.rval .eq{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+.rval .big{font-size:25px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.35}
+.cap{margin:0;font-size:15px;font-weight:700;color:var(--hour)}
 .note{min-height:1.6em;margin:0;text-align:center;font-weight:700;color:var(--ok)}
-.shelf{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;min-height:0}
+.note:empty{display:none}
+.status{margin:0;text-align:center;font-weight:700}
+.status:empty{display:none}
+.shelf{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 .shelf:empty{display:none}
-.token{display:grid;justify-items:center;width:78px;font-size:13px;font-weight:700;color:var(--muted)}
+.token{display:grid;justify-items:center;width:84px;font-size:13px;font-weight:700;color:var(--muted)}
 .token svg{width:60px;height:60px}
-.token.new{animation:pop .35s ease-out}
-@keyframes pop{0%{transform:scale(.5);opacity:.2}100%{transform:scale(1);opacity:1}}
+.token.new{animation:tokenPop .6s ease-out}
+@keyframes tokenPop{0%{transform:scale(.3);opacity:0}45%{transform:scale(1.25,.8);opacity:1}70%{transform:scale(.9,1.12)}100%{transform:scale(1)}}
 .ctrls{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px}
 .btn{font:700 18px/1.2 var(--font);min-height:54px;padding:0 16px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.quiet{font-size:15px;min-height:44px;color:var(--muted)}
-.btn:focus-visible,.tab:focus-visible,.seg button:focus-visible,.step:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .btn[aria-disabled="true"]{opacity:.45}
+.btn:focus-visible,.tab:focus-visible,.seg button:focus-visible,.step:focus-visible,.apb:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.seg button{font:700 14px/1.3 var(--font);min-height:48px;padding:4px 6px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.seg button{word-break:keep-all;font:700 14px/1.3 var(--font);min-height:48px;padding:4px 6px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
 .seg button[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--card))}
 .problem{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;text-align:center}
 .problem svg{width:100%;max-width:132px;height:auto}
 .problem .who{font-weight:900;font-size:20px;font-variant-numeric:tabular-nums}
-.problem .who span{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;color:var(--mk-ink);font-size:16px;margin-right:6px}
+.problem .who i{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;color:var(--mk-ink);font-size:16px;font-style:normal;margin-right:6px}
 .who .ia{background:var(--a)} .who .ib{background:var(--b)}
 .arrow{font-size:28px;font-weight:900;color:var(--muted)}
 .question{margin:0;font-size:21px;font-weight:900;text-align:center;text-wrap:balance}
-.status{margin:0;text-align:center;font-weight:700;min-height:1.6em}
-.hint{background:color-mix(in srgb,var(--lap0) 22%,var(--card));border-radius:14px;padding:10px 14px;font-size:16px;font-weight:700}
+.bigq{margin:0;font-size:22px;font-weight:700;text-align:center;line-height:1.8}
+.bigq b{font-weight:900;color:var(--hour);white-space:nowrap}
+.rule{margin:0;text-align:center;font-weight:900;color:var(--muted);font-size:15px}
+/* こたえいれ */
 .answer{display:grid;gap:12px}
+.ampm{display:flex;justify-content:center;gap:8px}
+.apb{font:900 20px var(--font);min-height:52px;min-width:96px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.apb[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .steppers{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}
-.stepper{display:flex;align-items:center;gap:8px}
+.stepper{display:flex;align-items:center;gap:6px}
 .step{width:52px;height:52px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);font:900 26px/1 var(--font);cursor:pointer}
-.val{min-width:84px;text-align:center;font-weight:700}
+.step.sm{width:46px;font-size:17px}
+.val{min-width:76px;text-align:center;font-weight:700}
 .val b{font-size:36px;font-weight:900;font-variant-numeric:tabular-nums;margin-right:2px}
+.hint{background:color-mix(in srgb,var(--lap0) 22%,var(--card));border-radius:14px;padding:10px 14px;font-size:16px;font-weight:700}
+.hint p{margin:0 0 4px}
+.hint p:last-child{margin:0}
 .result{margin:0;text-align:center;font-size:19px;font-weight:900;min-height:1.6em}
 .result.ok{color:var(--ok)} .result.no{color:var(--warn)}
+/* 分を時間に */
 .tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
 .tile{display:grid;justify-items:center;font-size:12px;font-weight:700;color:var(--muted)}
 .tile svg{width:100%;max-width:52px;height:auto}
+.tile.puyo{animation:tilePuyo .55s ease-in forwards}
+@keyframes tilePuyo{0%{transform:scale(1)}30%{transform:scale(1.15,.85)}60%{transform:scale(.85,1.12)}100%{transform:scale(.15);opacity:0}}
 .tiles-empty{grid-column:1/-1;text-align:center;color:var(--muted);font-weight:700}
-.rule{margin:0;text-align:center;font-weight:900;color:var(--muted);font-size:15px}
+/* おはなし */
+.story-text{margin:0;font-size:18px;line-height:1.95}
+.memo ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.memo li{display:grid;grid-template-columns:minmax(0,10em) minmax(0,1fr);gap:8px;font-weight:700}
+.memo li b{color:var(--hour);font-variant-numeric:tabular-nums}
+.q{display:grid;gap:12px}
+.q.locked{opacity:.45}
+.qtext{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;font-size:18px;font-weight:700;line-height:1.7}
+.qn{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#ffc83d;color:#1b2a3a;font-weight:900;font-size:16px}
+details.tryclock summary{cursor:pointer;font-weight:900;min-height:44px;display:flex;align-items:center}
+details.tryclock[open] summary{margin-bottom:10px}
+/* とけい(SVG) */
 svg .face{fill:var(--face);stroke:var(--line);stroke-width:3}
 svg .piece{stroke:var(--face);stroke-width:2;stroke-linejoin:round}
 svg .lap0{fill:var(--lap0)} svg .lap1{fill:var(--lap1)} svg .lap2{fill:var(--lap2)} svg .lap3{fill:var(--lap3)} svg .lap4{fill:var(--lap4)}
+svg .lapgroup{transform-box:fill-box;transform-origin:center}
+svg .lapgroup .piece{transition:stroke-width .25s ease}
+svg .lapgroup.merge .piece{stroke-width:0}
+svg .lapgroup.wobble{animation:puyo .7s ease-out}
+@keyframes puyo{0%{transform:scale(1)}16%{transform:scale(1.16,.84)}34%{transform:scale(.88,1.14)}52%{transform:scale(1.08,.94)}72%{transform:scale(.97,1.03)}100%{transform:scale(1)}}
 svg .tick{stroke:var(--tick);stroke-width:1.5}
 svg .tick.big{stroke:var(--ink);stroke-width:3}
-svg .num{font:700 24px var(--font);fill:var(--ink);text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:var(--face);stroke-width:4px;stroke-linejoin:round}
+svg .hl{fill:var(--hour);fill-opacity:.2}
+svg .num{font:700 24px var(--font);fill:var(--hour);text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:var(--face);stroke-width:4px;stroke-linejoin:round}
 svg.mini .num{font-size:36px}
-svg .mlabel{font:900 14px var(--font);fill:var(--mlabel);text-anchor:middle;dominant-baseline:central}
+svg .mlabel{font:900 14px var(--font);fill:var(--minute);text-anchor:middle;dominant-baseline:central}
 svg .hand-under{stroke:var(--face);stroke-linecap:round}
-svg .hand{stroke:var(--ink);stroke-linecap:round}
+svg .hand-h{stroke:var(--hour);stroke-linecap:round}
+svg .hand-m{stroke:var(--minute);stroke-linecap:round}
 svg .dot-under{fill:var(--face)} svg .dot{fill:var(--ink)}
 svg .mk.a{fill:var(--a)} svg .mk.b{fill:var(--b)}
 svg .mk{stroke:var(--face);stroke-width:2}
 svg .mkt{font:900 17px var(--font);fill:var(--mk-ink);text-anchor:middle;dominant-baseline:central}
 svg .tface{fill:var(--face);stroke:var(--line);stroke-width:2}
 svg .tpiece{fill:var(--lap0)}
-@media (prefers-reduced-motion: reduce){.token.new{animation:none}}
-@media (max-width:420px){h1{font-size:23px}.tab{font-size:14px}}
+@media (prefers-reduced-motion: reduce){
+  .token.new,.htok.new,.tile.puyo,svg .lapgroup.wobble{animation:none}
+  svg .lapgroup .piece{transition:none}
+}
+@media (max-width:420px){h1{font-size:23px}.tab{font-size:14px}.rrow{grid-template-columns:78px minmax(0,1fr)}}
 </style>
 
 <div class="app">
@@ -118,32 +175,21 @@ svg .tpiece{fill:var(--lap0)}
 
   <nav class="tabs" role="tablist" aria-label="あそびかた">
     <button class="tab" role="tab" id="tab1" aria-selected="true" aria-controls="m1">ピースで あそぶ<small>5分ずつ ふやす</small></button>
-    <button class="tab" role="tab" id="tab2" aria-selected="false" aria-controls="m2">A から B<small>なん時間 なん分</small></button>
+    <button class="tab" role="tab" id="tab2" aria-selected="false" aria-controls="m2">A から B<small>時間の ながさ</small></button>
     <button class="tab" role="tab" id="tab3" aria-selected="false" aria-controls="m3">分を 時間に<small>まとめよう</small></button>
+    <button class="tab" role="tab" id="tab4" aria-selected="false" aria-controls="m4">何時 何分？<small>時こくを もとめる</small></button>
+    <button class="tab" role="tab" id="tab5" aria-selected="false" aria-controls="m5">おはなし<small>1日の ながれ</small></button>
   </nav>
 
   <label class="switch"><input type="checkbox" id="optLabels" checked> ながい はりの 「ぶんの かず」を みせる</label>
 
-  <!-- あそぶ -->
+  <!-- 1 あそぶ -->
   <section class="panel" id="m1" role="tabpanel" aria-labelledby="tab1">
-    <p class="lead">ながい はりが 1つ すすむと 5分。5分の ピースを 12こ あつめると、ちょうど 1しゅう。それが 1時間（60分）だよ。</p>
-    <div class="card clockbox" id="clock1"></div>
-    <div class="card readout" aria-live="polite">
-      <div class="eq" id="r1Eq"></div>
-      <div class="hm" id="r1Hm"></div>
-    </div>
-    <p class="note" id="note1" aria-live="polite"></p>
-    <div class="shelf" id="shelf1" aria-label="できた 1時間"></div>
-    <div class="ctrls">
-      <button class="btn primary" data-add="1">＋5分</button>
-      <button class="btn primary" data-add="3">＋15分</button>
-      <button class="btn primary" data-add="6">＋30分</button>
-      <button class="btn" data-add="-1">もどす</button>
-      <button class="btn quiet" id="reset1">はじめから</button>
-    </div>
+    <p class="lead">5分の ピースを 12こ あつめると、ながい はりが ちょうど 1しゅう。それが 1時間（60分）。1しゅうすると、みじかい はりは 数字を 1つ すすむよ。</p>
+    <div id="clock1"></div>
   </section>
 
-  <!-- A から B -->
+  <!-- 2 A から B -->
   <section class="panel" id="m2" role="tabpanel" aria-labelledby="tab2" hidden>
     <div class="seg" id="lv2" role="group" aria-label="むずかしさ">
       <button data-lv="1" aria-pressed="true">Lv1<br>じを またがない</button>
@@ -151,64 +197,140 @@ svg .tpiece{fill:var(--lap0)}
       <button data-lv="3" aria-pressed="false">Lv3<br>1時間より ながい</button>
     </div>
     <div class="card problem">
-      <div><div id="miniA"></div><div class="who"><span class="ia">A</span><span id="txtA" style="all:unset"></span></div></div>
+      <div><div id="miniA"></div><div class="who"><i class="ia">A</i><span id="txtA"></span></div></div>
       <div class="arrow" aria-hidden="true">→</div>
-      <div><div id="miniB"></div><div class="who"><span class="ib">B</span><span id="txtB" style="all:unset"></span></div></div>
+      <div><div id="miniB"></div><div class="who"><i class="ib">B</i><span id="txtB"></span></div></div>
     </div>
     <p class="question">A から B までは、なん時間 なん分？</p>
-    <div class="card clockbox" id="clock2"></div>
-    <p class="status" id="status2" aria-live="polite"></p>
-    <div class="ctrls">
-      <button class="btn primary" data-add2="1">＋5分</button>
-      <button class="btn primary" data-add2="3">＋15分</button>
-      <button class="btn primary" data-add2="6">＋30分</button>
-      <button class="btn primary" data-add2="12">＋1時間</button>
-      <button class="btn" data-add2="-1">もどす</button>
-    </div>
-    <div class="card" id="answerWrap2" hidden>
-      <div class="answer">
-        <div id="ans2"></div>
-        <div class="hint" id="hint2" hidden></div>
-        <p class="result" id="res2" aria-live="polite"></p>
-        <div class="ctrls">
-          <button class="btn quiet" id="hintBtn2">ヒントを みる</button>
-          <button class="btn primary" id="next2" hidden>つぎの もんだい</button>
-        </div>
-      </div>
-    </div>
+    <div id="clock2"></div>
+    <div class="card" id="answerWrap2" hidden><div id="ans2"></div></div>
     <button class="btn quiet" id="new2">べつの もんだいに かえる</button>
   </section>
 
-  <!-- 分を時間に -->
+  <!-- 3 分を時間に -->
   <section class="panel" id="m3" role="tabpanel" aria-labelledby="tab3" hidden>
     <p class="question" id="q3"></p>
     <p class="rule">ピース 12こ ＝ 60分 ＝ 1時間</p>
-    <div class="card">
-      <div class="tiles" id="tiles3" aria-label="のこりの ピース"></div>
-    </div>
-    <div class="ctrls">
-      <button class="btn primary" id="merge3" style="grid-column:1/-1">12こを 1時間に まとめる</button>
-    </div>
+    <div class="card"><div class="tiles" id="tiles3" aria-label="のこりの ピース"></div></div>
+    <div class="ctrls"><button class="btn primary" id="merge3" style="grid-column:1/-1">12こを 1時間に まとめる</button></div>
     <p class="note" id="note3" aria-live="polite"></p>
     <div class="shelf" id="shelf3" aria-label="まとめた 1時間"></div>
-    <div class="card">
-      <div class="answer">
-        <div id="ans3"></div>
-        <div class="hint" id="hint3" hidden></div>
-        <p class="result" id="res3" aria-live="polite"></p>
-        <button class="btn primary" id="next3" hidden>つぎの もんだい</button>
-      </div>
-    </div>
+    <div class="card"><div id="ans3"></div></div>
     <button class="btn quiet" id="new3">べつの もんだいに かえる</button>
+  </section>
+
+  <!-- 4 何時何分 -->
+  <section class="panel" id="m4" role="tabpanel" aria-labelledby="tab4" hidden>
+    <div class="seg" id="lv4" role="group" aria-label="むずかしさ">
+      <button data-lv="1" aria-pressed="true">Lv1<br>じを またがない</button>
+      <button data-lv="2" aria-pressed="false">Lv2<br>じを またぐ</button>
+      <button data-lv="3" aria-pressed="false">Lv3<br>正午を またぐ</button>
+    </div>
+    <div class="card"><p class="bigq" id="q4"></p></div>
+    <div id="clock4"></div>
+    <div class="card"><div id="ans4"></div></div>
+    <button class="btn quiet" id="new4">べつの もんだいに かえる</button>
+  </section>
+
+  <!-- 5 おはなし -->
+  <section class="panel" id="m5" role="tabpanel" aria-labelledby="tab5" hidden>
+    <div class="card"><p class="story-text" id="story5"></p></div>
+    <div class="card memo"><p class="lbl">じこくメモ</p><ul id="memo5"></ul></div>
+    <div class="panel" id="qs5"></div>
+    <details class="card tryclock"><summary>とけいで ためす</summary><div id="clock5"></div></details>
+    <button class="btn quiet" id="new5">べつの おはなしに かえる</button>
   </section>
 </div>
 
 <script>
 (function(){
   var $=function(s,r){return (r||document).querySelector(s)};
-  var pad=function(n){return String(n).padStart(2,'0')};
-  var rnd=function(a,b){return a+Math.floor(Math.random()*(b-a+1))};
-  var clockText=function(t){return (((Math.floor(t/60))%12)||12)+':'+pad(t%60)};
+  var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+  var reduce=false;try{reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){}
+
+  //PURE-START
+  function rnd(a,b){return a+Math.floor(Math.random()*(b-a+1))}
+  function pick(a){return a[rnd(0,a.length-1)]}
+  function pad(n){return String(n).padStart(2,'0')}
+  function nrm(t){return ((t%1440)+1440)%1440}
+  function h12(t){t=nrm(t);return (Math.floor(t/60)%12)||12}
+  function apOf(t){return nrm(t)<720?'午前':'午後'}
+  function clockText(t){return h12(t)+':'+pad(nrm(t)%60)}
+  function jaTm(t){var m=nrm(t)%60;return h12(t)+'時'+(m?m+'分':'')}
+  function jaClock(t){var m=nrm(t)%60;return h12(t)+'時'+(m?m+'分':'ちょうど')}
+  function jaFull(t){t=nrm(t);return t===720?'正午':apOf(t)+jaClock(t)}
+  function durJa(d){var h=Math.floor(d/60),m=d%60;if(h===0)return m+'分';return h+'時間'+(m?m+'分':'')}
+  function handCaption(t){
+    var h=h12(t),m=nrm(t)%60,nx=h%12+1;
+    if(m===0)return 'みじかい はり（時）は ちょうど '+h+' を さしているよ。';
+    if(m===30)return 'みじかい はり（時）は '+h+' と '+nx+' の ちょうど まんなか。';
+    return 'みじかい はり（時）は '+h+' と '+nx+' の あいだ。だから '+h+'時 すぎ。';
+  }
+  function genQ2(level){
+    var Am,d;
+    if(level===1){Am=5*rnd(0,9);d=5*rnd(2,(60-Am)/5)}
+    else if(level===2){Am=5*rnd(3,11);d=5*rnd((60-Am)/5+1,11)}
+    else{Am=5*rnd(0,11);d=60*rnd(1,3)+5*rnd(1,11)}
+    var k=Math.floor((Am+d)/60);
+    var Ah=rnd(1,Math.max(1,11-k));
+    return {Ah:Ah,Am:Am,d:d};
+  }
+  function genQ4(level){
+    var h,m,start,d,lo;
+    if(level===1){
+      h=pick([7,8,9,10,11,13,14,15,16,17,18]);m=5*rnd(0,9);start=h*60+m;d=5*rnd(2,(55-m)/5);
+    }else if(level===2){
+      h=pick([7,8,9,13,14,15,16,17]);m=5*rnd(1,11);start=h*60+m;
+      lo=(60-m)/5+1;d=5*rnd(lo,lo+12);
+    }else{
+      h=rnd(10,11);m=5*rnd(0,11);start=h*60+m;
+      lo=(720-start)/5+1;d=5*rnd(lo,lo+18);
+    }
+    return {start:start,d:d};
+  }
+  function stepsAdd(start,d){
+    var P=Math.floor(d/60),Q=d%60,t=start,out=[];
+    out.push('はじめは '+jaFull(t)+'。');
+    if(P>0){t+=P*60;out.push(P+'時間 あとは '+jaFull(t)+'。（みじかい はりが '+P+'つ すすむよ）')}
+    if(Q>0){
+      var m0=nrm(t)%60,sum=m0+Q;
+      if(sum<60)out.push(m0+'分 ＋ '+Q+'分 ＝ '+sum+'分。');
+      else if(sum===60)out.push(m0+'分 ＋ '+Q+'分 ＝ 60分。60分で 1時間 だから、ちょうど 次の 時に なるよ。');
+      else out.push(m0+'分 ＋ '+Q+'分 ＝ '+sum+'分。60分で 1時間 だから、1時間 すすんで、のこりは '+(sum-60)+'分。');
+      t+=Q;
+    }
+    if(apOf(start)!==apOf(t)&&nrm(t)!==720)out.push('正午（12時）を すぎたので 午後 だね。');
+    out.push('こたえは '+jaFull(t)+'。');
+    return out;
+  }
+  function genStory(){
+    var name=pick(['かずき','ゆうと','はると','みなと']);
+    var S,a,b,r;
+    do{S=5*rnd(108,126);a=5*rnd(6,12);b=5*rnd(2,4);r=720-(S+a+b)}while(r<20||r>90);
+    var L=5*rnd(150,156),w=rnd(5,12),P=rnd(1,2),Q=5*rnd(2,11);
+    var arr=L+w,E=arr+P*60+Q,H=E+w;
+    var text=name+'さんは 午前'+jaTm(S)+'から テレビゲームを はじめました。'+a+'分 あそんだら '+b+'分 きゅうけいを して、正午まで あそびました。お昼ごはんを 食べて、家を 午後'+jaTm(L)+'に 出て、'+w+'分 歩いて 公園に あそびに 行きました。';
+    var q1h=[
+      jaFull(S)+' から '+a+'分 あそぶと '+jaFull(S+a)+'。',
+      'そのあと '+b+'分 きゅうけいを すると '+jaFull(S+a+b)+'。（きゅうけいは あそんだ 時間に いれないよ）',
+      jaFull(S+a+b)+' から 正午まで あそんだ 時間は '+r+'分。',
+      a+'分 ＋ '+r+'分 ＝ '+(a+r)+'分。60分で 1時間 だから '+durJa(a+r)+'。'];
+    var q2h=['家を 出たのは '+jaFull(L)+'。'+w+'分 歩くと、公園には '+jaFull(arr)+' に つくよ。'].concat(stepsAdd(arr,P*60+Q).slice(1));
+    var q3h=[
+      '公園を 出たのは '+jaFull(E)+'。'+w+'分 歩くので、家に ついたのは '+jaFull(H)+'。',
+      jaFull(S)+' から 正午までは '+durJa(720-S)+'。',
+      '正午 から '+jaFull(H)+' までは '+durJa(H-720)+'。',
+      durJa(720-S)+' ＋ '+durJa(H-720)+' ＝ '+durJa(H-S)+'。（分を たして 60分に なったら 1時間に まとめるよ）'];
+    return {S:S,a:a,b:b,r:r,L:L,w:w,P:P,Q:Q,arr:arr,E:E,H:H,text:text,
+      qs:[
+        {type:'dur',exp:a+r,text:'テレビゲームで あそんだ 時間は 何時間何分ですか。',hints:q1h},
+        {type:'time',exp:E,text:'公園で '+P+'時間'+Q+'分 あそびました。公園を 出た 時こくは 何時何分ですか。',hints:q2h},
+        {type:'dur',exp:H-S,text:'公園を 出て '+w+'分 歩いて、家に かえりました。テレビゲームを はじめてから、家に かえってくるまでの 時間は 何時間何分ですか。',hints:q3h}],
+      rows:[
+        {t:S,label:'ゲームを はじめた',after:-1},{t:720,label:'ゲームを おわった',after:-1},{t:L,label:'家を 出た',after:-1},
+        {t:arr,label:'公園に ついた',after:1},{t:E,label:'公園を 出た',after:1},{t:H,label:'家に ついた',after:2}]};
+  }
+  //PURE-END
 
   /* ---- ほし ---- */
   var stars=0;
@@ -216,28 +338,31 @@ svg .tpiece{fill:var(--lap0)}
   function showStars(){$('#starCount').textContent=stars}
   function addStar(){stars++;showStars();try{localStorage.setItem('tokei-piece-stars',String(stars))}catch(e){}}
   showStars();
+  var labelsOn=function(){return $('#optLabels').checked};
 
-  /* ---- 時計の えがき ---- */
+  /* ---- とけい(SVG) ---- */
   function pol(cx,cy,r,min){var a=min/60*2*Math.PI;return [cx+r*Math.sin(a),cy-r*Math.cos(a)]}
   function wedge(cx,cy,r,m0,m1){
     var p0=pol(cx,cy,r,m0),p1=pol(cx,cy,r,m1);
     return 'M'+cx+','+cy+' L'+p0[0].toFixed(2)+','+p0[1].toFixed(2)+' A'+r+','+r+' 0 0 1 '+p1[0].toFixed(2)+','+p1[1].toFixed(2)+' Z';
   }
   function clockSVG(o){
-    var cx=160,cy=160,R=118,mini=!!o.mini,s='',i,n,p,q;
+    var cx=160,cy=160,R=118,mini=!!o.mini,rn=mini?82:92,s='',i,n,p,q;
     s+='<svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+(o.aria||'とけい')+'"'+(mini?' class="mini"':'')+'>';
     s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+(R+4)+'" class="face"/>';
-    for(i=0;i<(o.pieces||0);i++){
-      var lap=Math.floor(i/12),r=R*(1-0.16*lap),m0=o.start+(i%12)*5;
-      s+='<path d="'+wedge(cx,cy,r,m0,m0+5)+'" class="piece lap'+(lap%5)+'"/>';
+    if(o.pieces){
+      s+='<g class="lapgroup'+(o.group?' '+o.group:'')+'">';
+      for(i=0;i<o.pieces;i++){var m0=o.start+i*5;s+='<path d="'+wedge(cx,cy,R,m0,m0+5)+'" class="piece lap'+((o.lap||0)%5)+'"/>'}
+      s+='</g>';
     }
     for(i=0;i<60;i++){
-      var big=i%5===0; if(mini&&!big) continue;
+      var big=i%5===0;if(mini&&!big)continue;
       p=pol(cx,cy,R,i);q=pol(cx,cy,R-(big?12:6),i);
       s+='<line x1="'+p[0].toFixed(1)+'" y1="'+p[1].toFixed(1)+'" x2="'+q[0].toFixed(1)+'" y2="'+q[1].toFixed(1)+'" class="tick'+(big?' big':'')+'"/>';
     }
+    if(o.hl){for(i=0;i<o.hl.length;i++){p=pol(cx,cy,rn,o.hl[i]*5);s+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="18" class="hl"/>'}}
     for(n=1;n<=12;n++){
-      p=pol(cx,cy,mini?82:92,n*5);
+      p=pol(cx,cy,rn,n*5);
       s+='<text x="'+p[0].toFixed(1)+'" y="'+p[1].toFixed(1)+'" class="num">'+n+'</text>';
     }
     if(o.labels&&!mini){
@@ -256,213 +381,353 @@ svg .tpiece{fill:var(--lap0)}
       var hp=pol(cx,cy,62,(hh+mm/60)*5),mp=pol(cx,cy,104,mm);
       s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+hp[0].toFixed(1)+'" y2="'+hp[1].toFixed(1)+'" class="hand-under" stroke-width="15"/>';
       s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+mp[0].toFixed(1)+'" y2="'+mp[1].toFixed(1)+'" class="hand-under" stroke-width="11"/>';
-      s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+hp[0].toFixed(1)+'" y2="'+hp[1].toFixed(1)+'" class="hand" stroke-width="9"/>';
-      s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+mp[0].toFixed(1)+'" y2="'+mp[1].toFixed(1)+'" class="hand" stroke-width="5"/>';
+      s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+hp[0].toFixed(1)+'" y2="'+hp[1].toFixed(1)+'" class="hand-h" stroke-width="9"/>';
+      s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+mp[0].toFixed(1)+'" y2="'+mp[1].toFixed(1)+'" class="hand-m" stroke-width="5"/>';
       s+='<circle cx="'+cx+'" cy="'+cy+'" r="11" class="dot-under"/><circle cx="'+cx+'" cy="'+cy+'" r="7" class="dot"/>';
     }
     return s+'</svg>';
   }
   function fullSVG(lap){
     var s='<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="20" cy="20" r="19" class="tface"/>',i;
-    for(i=0;i<12;i++) s+='<path d="'+wedge(20,20,18,i*5,i*5+5)+'" class="piece lap'+(lap%5)+'" style="stroke-width:1"/>';
+    for(i=0;i<12;i++)s+='<path d="'+wedge(20,20,18,i*5,i*5+5)+'" class="piece lap'+(lap%5)+'" style="stroke-width:1"/>';
     return s+'</svg>';
   }
   function tileSVG(){
     return '<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="20" cy="20" r="19" class="tface"/><path d="'+wedge(20,20,18,0,5)+'" class="tpiece"/></svg>';
   }
 
-  /* ---- こたえ いれる ぶひん ---- */
-  function mkAnswer(root,maxH,onCheck){
-    var st={h:0,m:0};
-    root.innerHTML=
-      '<div class="steppers">'+
-        '<div class="stepper"><button class="step" data-k="h" data-d="-1" aria-label="時間を へらす">−</button><div class="val"><b data-v="h">0</b>時間</div><button class="step" data-k="h" data-d="1" aria-label="時間を ふやす">＋</button></div>'+
-        '<div class="stepper"><button class="step" data-k="m" data-d="-5" aria-label="分を へらす">−</button><div class="val"><b data-v="m">0</b>分</div><button class="step" data-k="m" data-d="5" aria-label="分を ふやす">＋</button></div>'+
-      '</div>'+
-      '<button class="btn primary check" style="width:100%">こたえあわせ</button>';
-    function upd(){root.querySelector('[data-v="h"]').textContent=st.h;root.querySelector('[data-v="m"]').textContent=st.m}
+  /* ---- ピースを ふやす とけい ---- */
+  function PieceClock(root,o){
+    var st={start:o.start||0,pieces:0,busy:false,locked:false,timers:[]};
+    var max=o.max||60,btns=o.buttons||[1,3,6,12],R=o.readout||{},chips=o.chips||null;
+    root.classList.add('panel');
+    var html='';
+    if(chips)html+='<div><p class="lbl">'+(o.chipLabel||'')+'</p><div class="seg chips"></div></div>';
+    html+='<div class="card clockbox"><div class="cwrap"></div><div class="hstack"></div></div>';
+    html+='<div class="legend"><span class="h"><i></i>みじかい はり ＝ 時</span><span class="m"><i></i>ながい はり ＝ 分</span></div>';
+    if(R.dur||R.tm||R.cap){
+      html+='<div class="card readout">';
+      if(R.dur)html+='<div class="rrow"><span class="tag dur">時間<small>どれだけ</small></span><div class="rval"><div class="eq"></div><div class="big hmv"></div></div></div>';
+      if(R.tm)html+='<div class="rrow"><span class="tag tm">時こく<small>いつ</small></span><div class="rval"><div class="big tmv"></div></div></div>';
+      if(R.cap)html+='<p class="cap"></p>';
+      html+='</div>';
+    }
+    html+='<p class="status" aria-live="polite"></p><p class="note" aria-live="polite"></p><div class="ctrls">';
+    btns.forEach(function(n){html+='<button class="btn primary" data-n="'+n+'">＋'+(n===1?'5分':n===3?'15分':n===6?'30分':'1時間')+'</button>'});
+    html+='<button class="btn" data-n="-1">もどす</button>';
+    if(o.resetBtn)html+='<button class="btn quiet" data-reset="1">はじめから</button>';
+    html+='</div>';
+    root.innerHTML=html;
+    var els={clock:$('.cwrap',root),eq:$('.eq',root),hm:$('.hmv',root),tm:$('.tmv',root),cap:$('.cap',root),
+      status:$('.status',root),note:$('.note',root),stack:$('.hstack',root)};
+    var api={st:st,
+      setStatus:function(t,col){els.status.textContent=t;els.status.style.color=col||''}};
+
+    function draw(part,lap,now,grp){
+      var m=nrm(now)%60,hh=h12(now);
+      els.clock.innerHTML=clockSVG({start:st.start%60,pieces:part,lap:lap,group:grp,labels:o.labels?o.labels():false,time:now,
+        hl:R.cap?(m===0?[hh]:[hh,hh%12+1]):null,markers:o.markers?o.markers(st):[],aria:o.aria||'とけい'});
+    }
+    function drawShelf(laps,pop){
+      if(!laps){els.stack.innerHTML='<div class="hslot"></div>';return}
+      var h='<div class="hpile">';
+      for(var i=0;i<laps;i++)h+='<div class="htok'+(i===pop?' new':'')+'">'+fullSVG(i)+'</div>';
+      els.stack.innerHTML=h+'</div><span class="hcap">'+laps+'時間</span>';
+    }
+    function drawReadout(p){
+      var t=p*5,now=st.start+t;
+      if(R.dur){els.eq.innerHTML='5分 × <b>'+p+'</b>こ ＝ <b>'+t+'</b>分';els.hm.innerHTML='＝ <b>'+Math.floor(t/60)+'</b>時間 <b>'+(t%60)+'</b>分'}
+      if(R.tm)els.tm.textContent=o.ampm?jaFull(now):jaTm(now);
+      if(R.cap)els.cap.textContent=handCaption(now);
+    }
+    function noteFor(p){
+      if(p===0)return o.zeroNote||'';
+      if(p%12===0)return '12こで 60分 ＝ 1時間！ ながい はりが 1しゅう して、みじかい はりも 1つ すすんだよ。';
+      if(p%12===6)return '6こで 30分。1時間の はんぶんだね。';
+      return '';
+    }
+    function setBusy(b){$$('.ctrls .btn',root).forEach(function(x){x.setAttribute('aria-disabled',String(!!b))})}
+    function final(pop){
+      var p=st.pieces,laps=Math.floor(p/12);
+      draw(p%12,laps,st.start+p*5,'');
+      drawShelf(laps,pop?laps-1:-1);
+      drawReadout(p);
+      els.note.textContent=noteFor(p);
+      if(o.onChange)o.onChange(st,api);
+    }
+    function clearTimers(){st.timers.forEach(clearTimeout);st.timers=[];st.busy=false;setBusy(false)}
+    function add(n){
+      if(st.busy||st.locked)return;
+      var old=st.pieces,np=Math.max(0,Math.min(max,old+n));
+      if(np===old)return;
+      st.pieces=np;
+      var oL=Math.floor(old/12),nL=Math.floor(np/12);
+      if(np>old&&nL>oL&&!reduce){
+        st.busy=true;setBusy(true);
+        draw(12,oL,st.start+(oL+1)*60,'');
+        drawReadout((oL+1)*12);
+        els.note.textContent='12こ そろった！ ぷよっと まとまって、右下に 1時間が ふえるよ';
+        var g=$('.lapgroup',els.clock);
+        st.timers.push(setTimeout(function(){g.classList.add('merge')},60));
+        st.timers.push(setTimeout(function(){g.classList.add('wobble')},320));
+        st.timers.push(setTimeout(function(){st.busy=false;setBusy(false);final(true)},1050));
+      }else final(nL>oL);
+    }
+    function renderChips(){
+      if(!chips)return;
+      $('.chips',root).innerHTML=chips.map(function(c){return '<button data-min="'+c.min+'" aria-pressed="'+(c.min===st.start)+'">'+c.label+'</button>'}).join('');
+    }
+    function setStart(min){clearTimers();st.start=min;st.pieces=0;renderChips();final(false)}
+    api.setStart=setStart;
+    api.setChips=function(arr){chips=arr;setStart(arr[0].min)};
+    api.refresh=function(){if(!st.busy)final(false)};
     root.addEventListener('click',function(e){
-      var b=e.target.closest('button'); if(!b) return;
-      if(b.dataset.k==='h') st.h=Math.max(0,Math.min(maxH,st.h+Number(b.dataset.d)));
-      else if(b.dataset.k==='m') st.m=Math.max(0,Math.min(55,st.m+Number(b.dataset.d)));
-      else if(b.classList.contains('check')) onCheck(st.h*60+st.m);
+      var b=e.target.closest('button');if(!b)return;
+      if(b.dataset.n)add(+b.dataset.n);
+      else if(b.dataset.reset!==undefined)setStart(st.start);
+      else if(b.closest('.chips')&&!st.locked)setStart(+b.dataset.min);
+    });
+    setStart(st.start);
+    return api;
+  }
+
+  /* ---- こたえいれ ---- */
+  function AnswerPanel(root,cfg){
+    var type=cfg.type,fine=!!cfg.fine,maxH=cfg.maxH||5,st,tries,solved,hints,hi,locked=false;
+    var hl=type==='time'?'時':'時間';
+    var mm=fine?'<button class="step sm" data-k="m" data-d="-5" aria-label="分を 5 へらす">−5</button><button class="step sm" data-k="m" data-d="-1" aria-label="分を 1 へらす">−1</button>':'<button class="step" data-k="m" data-d="-5" aria-label="分を へらす">−</button>';
+    var mp=fine?'<button class="step sm" data-k="m" data-d="1" aria-label="分を 1 ふやす">＋1</button><button class="step sm" data-k="m" data-d="5" aria-label="分を 5 ふやす">＋5</button>':'<button class="step" data-k="m" data-d="5" aria-label="分を ふやす">＋</button>';
+    root.innerHTML='<div class="answer">'+
+      (type==='time'?'<div class="ampm" role="group" aria-label="午前か 午後か"><button class="apb" data-ap="午前" aria-pressed="true">午前</button><button class="apb" data-ap="午後" aria-pressed="false">午後</button></div>':'')+
+      '<div class="steppers">'+
+        '<div class="stepper"><button class="step" data-k="h" data-d="-1" aria-label="'+hl+'を へらす">−</button><div class="val"><b data-v="h">0</b>'+hl+'</div><button class="step" data-k="h" data-d="1" aria-label="'+hl+'を ふやす">＋</button></div>'+
+        '<div class="stepper">'+mm+'<div class="val"><b data-v="m">0</b>分</div>'+mp+'</div>'+
+      '</div>'+
+      '<button class="btn primary" data-act="check">こたえあわせ</button>'+
+      '<div class="hint" hidden></div><p class="result" aria-live="polite"></p>'+
+      '<div class="ctrls"><button class="btn quiet" data-act="hint">ヒントを みる</button>'+(cfg.next===false?'':'<button class="btn primary" data-act="next" hidden>'+(cfg.nextLabel||'つぎの もんだい')+'</button>')+'</div></div>';
+    var hintBox=$('.hint',root),res=$('.result',root),hintBtn=$('[data-act="hint"]',root),nextBtn=$('[data-act="next"]',root);
+    function upd(){
+      $('[data-v="h"]',root).textContent=st.h;$('[data-v="m"]',root).textContent=st.m;
+      $$('.apb',root).forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.ap===st.ap))});
+    }
+    function addHint(){
+      if(hi>=hints.length)return false;
+      var p=document.createElement('p');p.textContent=hints[hi++];hintBox.appendChild(p);hintBox.hidden=false;
+      if(hi>=hints.length)hintBtn.hidden=true;else hintBtn.textContent='つぎの ヒント';
+      return true;
+    }
+    function reset(h){
+      st={h:type==='time'?1:0,m:0,ap:'午前'};tries=0;solved=false;hints=h||[];hi=0;
+      hintBox.innerHTML='';hintBox.hidden=true;hintBtn.hidden=!hints.length;hintBtn.textContent='ヒントを みる';
+      if(nextBtn)nextBtn.hidden=true;res.textContent='';res.className='result';upd();
+    }
+    function check(){
+      if(solved)return;
+      tries++;
+      var r=cfg.judge({h:st.h,m:st.m,ap:st.ap,total:st.h*60+st.m});
+      if(r.ok){
+        solved=true;addStar();res.textContent='せいかい！ '+r.msg+' ★';res.className='result ok';
+        while(addHint());
+        hintBtn.hidden=true;if(nextBtn)nextBtn.hidden=false;
+        if(cfg.onSolved)cfg.onSolved();
+      }else{
+        res.textContent=r.msg;res.className='result no';
+        if(tries>=2)addHint();
+      }
+    }
+    root.addEventListener('click',function(e){
+      var b=e.target.closest('button');if(!b||locked)return;
+      var k=b.dataset.k,act=b.dataset.act;
+      if((k||b.dataset.ap)&&solved)return;
+      if(k==='h'){var d=+b.dataset.d;st.h=type==='time'?((st.h-1+d+12)%12)+1:Math.max(0,Math.min(maxH,st.h+d))}
+      else if(k==='m'){st.m=Math.max(0,Math.min(fine?59:55,st.m+(+b.dataset.d)))}
+      else if(b.dataset.ap){st.ap=b.dataset.ap}
+      else if(act==='check')check();
+      else if(act==='hint')addHint();
+      else if(act==='next'){if(cfg.onNext)cfg.onNext()}
       upd();
     });
-    return {reset:function(){st.h=0;st.m=0;upd()}};
+    reset([]);
+    return {reset:reset,lock:function(b){locked=b},isSolved:function(){return solved}};
   }
-  function say(el,text,cls){el.textContent=text;el.className='result'+(cls?' '+cls:'')}
+  function judgeDur(exp,generic){
+    var eh=Math.floor(exp/60),em=exp%60;
+    return function(v){
+      if(v.total===exp)return {ok:true,msg:eh+'時間'+em+'分'};
+      if(v.h===eh)return {ok:false,msg:'時間は あってるよ。分を もういちど かんがえよう'};
+      if(v.m===em)return {ok:false,msg:'分は あってるよ。時間を みなおそう'};
+      return {ok:false,msg:generic};
+    };
+  }
+  function judgeTime(exp,generic){
+    var ea=apOf(exp),eh=h12(exp),em=nrm(exp)%60;
+    return function(v){
+      var a=v.ap===ea,h=v.h===eh,m=v.m===em;
+      if(a&&h&&m)return {ok:true,msg:jaFull(exp)};
+      if(h&&m)return {ok:false,msg:'時こくは あってるよ！ 午前か 午後かを かくにんしよう'};
+      if(a&&h)return {ok:false,msg:'時は あってるよ。ながい はり（分）を よみなおそう'};
+      if(a&&m)return {ok:false,msg:'分は あってるよ。みじかい はり（時）を みなおそう'};
+      return {ok:false,msg:generic};
+    };
+  }
 
   /* ---- タブ ---- */
-  var tabs=['1','2','3'];
-  tabs.forEach(function(k){
+  var ids=['1','2','3','4','5'],clocks=[];
+  ids.forEach(function(k){
     $('#tab'+k).addEventListener('click',function(){
-      tabs.forEach(function(j){
+      ids.forEach(function(j){
         $('#tab'+j).setAttribute('aria-selected',String(j===k));
         $('#m'+j).hidden=(j!==k);
       });
     });
   });
-  $('#optLabels').addEventListener('change',function(){render1();render2()});
-
-  /* ================= 1. ピースで あそぶ ================= */
-  var s1={pieces:0,lastLaps:0};
-  function render1(){
-    var p=s1.pieces,total=p*5,h=Math.floor(total/60),m=total%60,laps=Math.floor(p/12);
-    $('#clock1').innerHTML=clockSVG({start:0,pieces:p,labels:$('#optLabels').checked,time:total,aria:total+'分 たった とけい'});
-    $('#r1Eq').innerHTML='5分 × <b>'+p+'</b>こ ＝ <b>'+total+'</b>分';
-    $('#r1Hm').innerHTML='＝ <b>'+h+'</b>時間 <b>'+m+'</b>分';
-    var note='';
-    if(p===0) note='ボタンを おして ピースを ふやそう';
-    else if(p%12===0) note='12こで 60分 ＝ 1時間！ いま '+(p/12)+'時間 だよ';
-    else if(p%12===6) note='6こで 30分。1時間の はんぶんだね';
-    $('#note1').textContent=note;
-    var sh='';
-    for(var i=0;i<laps;i++) sh+='<div class="token'+((laps>s1.lastLaps&&i===laps-1)?' new':'')+'">'+fullSVG(i)+'<span>1時間 (60分)</span></div>';
-    $('#shelf1').innerHTML=sh;
-    s1.lastLaps=laps;
-  }
-  document.querySelectorAll('[data-add]').forEach(function(b){
-    b.addEventListener('click',function(){
-      s1.pieces=Math.max(0,Math.min(60,s1.pieces+Number(b.dataset.add)));
-      render1();
+  $('#optLabels').addEventListener('change',function(){clocks.forEach(function(c){c.refresh()})});
+  function levelButtons(sel,cb){
+    $$(sel+' button').forEach(function(b){
+      b.addEventListener('click',function(){
+        $$(sel+' button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});
+        cb(Number(b.dataset.lv));
+      });
     });
-  });
-  $('#reset1').addEventListener('click',function(){s1.pieces=0;s1.lastLaps=0;render1()});
-
-  /* ================= 2. A から B ================= */
-  //GEN-START
-  function genQ2(level){
-    var Am,d;
-    if(level===1){Am=5*rnd(0,9);d=5*rnd(2,(60-Am)/5)}
-    else if(level===2){Am=5*rnd(3,11);d=5*rnd((60-Am)/5+1,11)}
-    else{Am=5*rnd(0,11);d=60*rnd(1,3)+5*rnd(1,11)}
-    var k=Math.floor((Am+d)/60);
-    var Ah=rnd(1,Math.max(1,11-k));
-    return {Ah:Ah,Am:Am,d:d};
   }
-  //GEN-END
-  var s2={level:1,Ah:3,Am:0,d:30,pieces:0,tries:0,solved:false};
-  var ans2=mkAnswer($('#ans2'),5,check2);
+
+  /* ===== 1. ピースで あそぶ ===== */
+  var clock1=PieceClock($('#clock1'),{
+    chips:[{label:'12:00',min:0},{label:'3:00',min:180},{label:'7:30',min:450}],chipLabel:'はじめの じこく',
+    start:0,max:60,labels:labelsOn,readout:{dur:true,tm:true,cap:true},ampm:false,resetBtn:true,
+    zeroNote:'ボタンを おして ピースを ふやそう',aria:'ピースを ふやす とけい'});
+  clocks.push(clock1);
+
+  /* ===== 2. A から B ===== */
+  var s2={level:1,Ah:3,Am:0,d:30};
+  var clock2=PieceClock($('#clock2'),{
+    start:180,max:60,labels:labelsOn,readout:{tm:true,cap:true},ampm:false,aria:'A から B までの とけい',
+    markers:function(st){var pa=st.start%60,pb=(st.start+s2.d)%60;if(pa===pb){pa-=2.5;pb+=2.5}return [{pos:pa,text:'A',cls:'a'},{pos:pb,text:'B',cls:'b'}]},
+    onChange:function(st,api){
+      var A=s2.Ah*60+s2.Am,B=A+s2.d,target=s2.d/5,p=st.pieces,msg,col='';
+      $('#miniA').innerHTML=clockSVG({mini:true,time:A,aria:'A '+clockText(A)});
+      $('#miniB').innerHTML=clockSVG({mini:true,time:B,aria:'B '+clockText(B)});
+      $('#txtA').textContent=clockText(A);$('#txtB').textContent=clockText(B);
+      if(p===0)msg='ピースを ふやして、A から B まで すすもう';
+      else if(p<target)msg='B は '+clockText(B)+' だよ。はりが B に つくまで すすめよう';
+      else if(p===target){msg='B に ついた！ なん時間 なん分 かな？';col='var(--ok)'}
+      else{msg='B を すぎちゃった。「もどす」で もどそう';col='var(--warn)'}
+      api.setStatus(msg,col);
+      $('#answerWrap2').hidden=!(p===target);
+    }});
+  clocks.push(clock2);
+  var ans2=AnswerPanel($('#ans2'),{type:'dur',maxH:5,onNext:function(){newQ2()},
+    judge:function(v){return judgeDur(s2.d,'もういちど。ピースを かぞえてみよう')(v)},
+    onSolved:function(){clock2.st.locked=true}});
   function newQ2(){
-    var g=genQ2(s2.level);
-    s2.Ah=g.Ah;s2.Am=g.Am;s2.d=g.d;s2.pieces=0;s2.tries=0;s2.solved=false;
-    ans2.reset();
-    $('#hint2').hidden=true;$('#hintBtn2').hidden=false;$('#next2').hidden=true;
-    say($('#res2'),'');
-    render2();
+    var g=genQ2(s2.level);s2.Ah=g.Ah;s2.Am=g.Am;s2.d=g.d;
+    var p=g.d/5,h=Math.floor(p/12),r=p%12,hs=['A から B まで ピースは ぜんぶで '+p+'こ。'];
+    if(r===0)hs.push('12こで 1時間。だから '+h+'時間 ちょうど。');
+    else{hs.push('12こで 1時間。だから '+h+'時間 と ピース '+r+'こ。');hs.push(r+'こ × 5分 ＝ '+(r*5)+'分。')}
+    hs.push('こたえは '+durJa(g.d)+'。');
+    ans2.reset(hs);
+    clock2.st.locked=false;
+    clock2.setStart(s2.Ah*60+s2.Am);
   }
-  function render2(){
-    var q=s2,target=q.d/5,A=q.Ah*60+q.Am,B=A+q.d,now=A+q.pieces*5;
-    $('#miniA').innerHTML=clockSVG({mini:true,time:A,aria:'A '+clockText(A)});
-    $('#miniB').innerHTML=clockSVG({mini:true,time:B,aria:'B '+clockText(B)});
-    $('#txtA').textContent=clockText(A);
-    $('#txtB').textContent=clockText(B);
-    var pa=q.Am,pb=B%60;
-    if(pa===pb){pa=q.Am-2.5;pb=pb+2.5}
-    $('#clock2').innerHTML=clockSVG({start:q.Am,pieces:q.pieces,labels:$('#optLabels').checked,time:now,
-      markers:[{pos:pa,text:'A',cls:'a'},{pos:pb,text:'B',cls:'b'}],aria:'A から B までの とけい'});
-    var st,cls='';
-    if(q.pieces===0) st='ピースを ふやして、A から B まで すすもう';
-    else if(q.pieces<target) st='いま '+clockText(now)+'  （B は '+clockText(B)+'）';
-    else if(q.pieces===target) st='B に ついた！ なん時間 なん分 かな？';
-    else st='B を すぎちゃった。「もどす」で ひとつ もどそう';
-    var el=$('#status2');el.textContent=st;el.style.color=q.pieces===target?'var(--ok)':(q.pieces>target?'var(--warn)':'');
-    $('#answerWrap2').hidden=!(q.pieces===target);
-  }
-  document.querySelectorAll('[data-add2]').forEach(function(b){
-    b.addEventListener('click',function(){
-      if(s2.solved) return;
-      s2.pieces=Math.max(0,Math.min(60,s2.pieces+Number(b.dataset.add2)));
-      render2();
-    });
-  });
-  function hint2(){
-    var p=s2.pieces,h=Math.floor(p/12),r=p%12;
-    var t='ピースは ぜんぶで '+p+'こ。12こで 1時間 だから、'+h+'時間 と ピース '+r+'こ。'+r+'こ × 5分 ＝ '+(r*5)+'分。';
-    var el=$('#hint2');el.textContent=t;el.hidden=false;
-  }
-  $('#hintBtn2').addEventListener('click',hint2);
-  function check2(v){
-    if(s2.solved||s2.pieces!==s2.d/5) return;
-    s2.tries++;
-    if(v===s2.d){
-      s2.solved=true;
-      addStar();
-      var h=Math.floor(s2.d/60),m=s2.d%60;
-      say($('#res2'),'せいかい！ '+h+'時間 '+m+'分 ★',' ok'.trim());
-      $('#res2').className='result ok';
-      $('#next2').hidden=false;$('#hintBtn2').hidden=true;hint2();
-    }else{
-      say($('#res2'),s2.tries>=2?'おしい！ ヒントを よんで もういちど':'もういちど。ピースを かぞえてみよう','no');
-      if(s2.tries>=2) hint2();
-    }
-  }
-  $('#next2').addEventListener('click',newQ2);
+  levelButtons('#lv2',function(lv){s2.level=lv;newQ2()});
   $('#new2').addEventListener('click',newQ2);
-  document.querySelectorAll('#lv2 button').forEach(function(b){
-    b.addEventListener('click',function(){
-      s2.level=Number(b.dataset.lv);
-      document.querySelectorAll('#lv2 button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});
-      newQ2();
-    });
-  });
 
-  /* ================= 3. 分を 時間に ================= */
-  var s3={n:90,tiles:18,clocks:0,tries:0,solved:false};
-  var ans3=mkAnswer($('#ans3'),5,check3);
-  function newQ3(){
-    s3.n=5*rnd(14,36);s3.tiles=s3.n/5;s3.clocks=0;s3.tries=0;s3.solved=false;
-    ans3.reset();
-    $('#hint3').hidden=true;$('#next3').hidden=true;
-    say($('#res3'),'');$('#note3').textContent='';
-    render3(false);
-  }
+  /* ===== 3. 分を 時間に ===== */
+  var s3={n:90,tiles:18,clocks:0,busy:false};
+  var ans3=AnswerPanel($('#ans3'),{type:'dur',maxH:5,onNext:function(){newQ3()},
+    judge:function(v){var j=judgeDur(s3.n,'もういちど。まとめた 1時間を かぞえてみよう')(v);if(j.ok)j.msg=s3.n+'分 ＝ '+j.msg;return j},
+    onSolved:function(){render3(false)}});
   function render3(pop){
     $('#q3').innerHTML='<b>'+s3.n+'分</b> は、なん時間 なん分？';
     var t='',i;
-    for(i=0;i<s3.tiles;i++) t+='<div class="tile">'+tileSVG()+'<span>5分</span></div>';
+    for(i=0;i<s3.tiles;i++)t+='<div class="tile">'+tileSVG()+'<span>5分</span></div>';
     $('#tiles3').innerHTML=t||'<div class="tiles-empty">ピースは ぜんぶ まとめたよ</div>';
     var sh='';
-    for(i=0;i<s3.clocks;i++) sh+='<div class="token'+((pop&&i===s3.clocks-1)?' new':'')+'">'+fullSVG(i)+'<span>1時間 (60分)</span></div>';
+    for(i=0;i<s3.clocks;i++)sh+='<div class="token'+((pop&&i===s3.clocks-1)?' new':'')+'">'+fullSVG(i)+'<span>1時間 (60分)</span></div>';
     $('#shelf3').innerHTML=sh;
-    $('#merge3').setAttribute('aria-disabled',String(s3.tiles<12||s3.solved));
+    $('#merge3').setAttribute('aria-disabled',String(s3.tiles<12||ans3.isSolved()));
+  }
+  function newQ3(){
+    s3.n=5*rnd(14,36);s3.tiles=s3.n/5;s3.clocks=0;s3.busy=false;
+    var k=Math.floor(s3.n/60),rp=s3.tiles-12*k;
+    var hs=[s3.tiles+'こ の ピースが あるよ。12こで 1時間 に まとめよう。','12こずつ まとめると '+k+'時間。'];
+    hs.push(rp===0?'ピースは ぴったり ぜんぶ まとまる。':'のこりの ピースは '+rp+'こ。'+rp+'こ × 5分 ＝ '+(rp*5)+'分。');
+    hs.push('こたえは '+durJa(s3.n)+'。');
+    ans3.reset(hs);
+    $('#note3').textContent='';
+    render3(false);
   }
   $('#merge3').addEventListener('click',function(){
-    if(s3.solved) return;
-    if(s3.tiles<12){
-      $('#note3').textContent='ピースが 12こ ないと、1時間に ならないよ';
-      $('#note3').style.color='var(--warn)';
-      return;
-    }
-    s3.tiles-=12;s3.clocks++;
-    $('#note3').style.color='';
-    $('#note3').textContent='12こ ＝ 60分 ＝ 1時間！ いま '+s3.clocks+'時間';
-    render3(true);
+    if(s3.busy||ans3.isSolved())return;
+    var note=$('#note3');
+    if(s3.tiles<12){note.style.color='var(--warn)';note.textContent='ピースが 12こ ないと、1時間に ならないよ';return}
+    s3.busy=true;
+    $$('#tiles3 .tile').slice(0,12).forEach(function(t){t.classList.add('puyo')});
+    note.style.color='';note.textContent='12こ ＝ 60分 ＝ 1時間！';
+    setTimeout(function(){
+      s3.tiles-=12;s3.clocks++;s3.busy=false;
+      note.textContent='12こ ＝ 60分 ＝ 1時間！ いま '+s3.clocks+'時間';
+      render3(true);
+    },reduce?0:560);
   });
-  function hint3(){
-    var el=$('#hint3'),t;
-    if(s3.tiles>=12) t='まだ ピースが '+s3.tiles+'こ。12こ そろったら 1時間に まとめられるよ。';
-    else t='1時間は '+s3.clocks+'こ。のこりの ピースは '+s3.tiles+'こ だから '+s3.tiles+' × 5 ＝ '+(s3.tiles*5)+'分。';
-    el.textContent=t;el.hidden=false;
-  }
-  function check3(v){
-    if(s3.solved) return;
-    s3.tries++;
-    if(v===s3.n){
-      s3.solved=true;addStar();
-      say($('#res3'),'せいかい！ '+s3.n+'分 ＝ '+Math.floor(s3.n/60)+'時間 '+(s3.n%60)+'分 ★');
-      $('#res3').className='result ok';
-      $('#next3').hidden=false;hint3();render3(false);
-    }else{
-      say($('#res3'),s3.tries>=2?'おしい！ ヒントを よんで もういちど':'もういちど。まとめた 1時間を かぞえてみよう','no');
-      if(s3.tries>=2) hint3();
-    }
-  }
-  $('#next3').addEventListener('click',newQ3);
   $('#new3').addEventListener('click',newQ3);
 
-  /* ---- はじめの がめん ---- */
-  render1();newQ2();newQ3();
+  /* ===== 4. 何時 何分？ ===== */
+  var s4={level:1,start:540,d:30};
+  var clock4=PieceClock($('#clock4'),{
+    start:540,max:60,labels:labelsOn,readout:{},ampm:true,aria:'はじめの じこくから すすめる とけい',
+    markers:function(st){return [{pos:st.start%60,text:'A',cls:'a'}]}});
+  clocks.push(clock4);
+  var ans4=AnswerPanel($('#ans4'),{type:'time',onNext:function(){newQ4()},
+    judge:function(v){return judgeTime(s4.start+s4.d,'もういちど。ピースで はりを うごかして よんでみよう')(v)}});
+  function newQ4(){
+    var g=genQ4(s4.level);s4.start=g.start;s4.d=g.d;
+    $('#q4').innerHTML='<b>'+jaFull(g.start)+'</b> から <b>'+durJa(g.d)+'</b> あとの 時こくは、何時何分？';
+    ans4.reset(['とけいの ピースを 5分ずつ ふやして、はりを うごかしてみよう。'].concat(stepsAdd(g.start,g.d)));
+    clock4.st.locked=false;
+    clock4.setStart(g.start);
+  }
+  levelButtons('#lv4',function(lv){s4.level=lv;newQ4()});
+  $('#new4').addEventListener('click',newQ4);
+
+  /* ===== 5. おはなし ===== */
+  var s5=null,solvedUpTo=-1;
+  var clock5=PieceClock($('#clock5'),{
+    chips:[{label:'—',min:0}],chipLabel:'はじめの じこく',start:0,max:60,labels:labelsOn,
+    readout:{dur:true,tm:true},ampm:true,resetBtn:true,aria:'ためしの とけい'});
+  clocks.push(clock5);
+  function renderMemo(){
+    var rows=s5.rows.filter(function(r){return r.after<=solvedUpTo}).sort(function(a,b){return a.t-b.t});
+    $('#memo5').innerHTML=rows.map(function(r){return '<li><b>'+jaFull(r.t)+'</b><span>'+r.label+'</span></li>'}).join('');
+  }
+  function newStory(){
+    s5=genStory();solvedUpTo=-1;
+    $('#story5').textContent=s5.text;
+    renderMemo();
+    var box=$('#qs5');box.innerHTML='';
+    var cards=[];
+    s5.qs.forEach(function(q,i){
+      var card=document.createElement('div');card.className='card q';
+      card.innerHTML='<p class="qtext"><span class="qn">'+(i+1)+'</span><span class="qt"></span></p><div class="mount"></div>';
+      $('.qt',card).textContent=q.text;
+      box.appendChild(card);
+      var gen='もういちど。ヒントを みてもいいよ';
+      var ap=AnswerPanel($('.mount',card),{type:q.type,fine:true,maxH:9,next:false,
+        judge:q.type==='dur'?judgeDur(q.exp,gen):judgeTime(q.exp,gen),
+        onSolved:function(){
+          solvedUpTo=Math.max(solvedUpTo,i);renderMemo();
+          if(cards[i+1]){cards[i+1].card.inert=false;cards[i+1].card.classList.remove('locked')}
+        }});
+      ap.reset(q.hints);
+      cards.push({card:card,ap:ap});
+    });
+    cards.forEach(function(c,i){if(i>0){c.card.inert=true;c.card.classList.add('locked')}});
+    clock5.setChips([{label:'ゲームを はじめた',min:s5.S},{label:'正午',min:720},{label:'家を 出た',min:s5.L}]);
+  }
+  $('#new5').addEventListener('click',newStory);
+
+  newQ2();newQ3();newQ4();newStory();
 })();
 </script>
 
